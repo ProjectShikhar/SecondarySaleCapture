@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Tabulated Data to Google Sheets</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .logo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        form input[type="text"], form input[type="number"] {
+            width: 200px;
+        }
+    </style>
+    <script>
+        const data = {
+            "Amit Kumar": ["Yashu Enterprises", "Vijay Marketing", "Vasanthi Enterprises", "Trimurthi Agencies", "Surya Enterprises", "Srinath Agencies"],
+            "Aniket Mishra": ["Yusuf Foods", "Vijaya Sai Agencies", "Vasavi Marketing", "U D Enterprises", "Susanth G Traders", "Srinivasa Agencies"],
+            // Other SO data...
+        };
+
+        function populateDistributors() {
+            const soSelect = document.getElementById("so");
+            const distributorSelect = document.getElementById("distributor");
+            const selectedSO = soSelect.value;
+
+            distributorSelect.innerHTML = ""; // Clear existing options
+
+            if (selectedSO in data) {
+                data[selectedSO].forEach(distributor => {
+                    const option = document.createElement("option");
+                    option.value = distributor;
+                    option.text = distributor;
+                    distributorSelect.add(option);
+                });
+            }
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            const soName = document.getElementById("so").value;
+            const distributorName = document.getElementById("distributor").value;
+            const secondarySale = document.getElementById("secondarySale").value;
+            const focusSkuSale = document.getElementById("focusSkuSale").value;
+
+            if (soName && distributorName && secondarySale && focusSkuSale) {
+                const table = document.getElementById("saleTable");
+                const newRow = table.insertRow(-1);
+
+                newRow.insertCell(0).textContent = soName;
+                newRow.insertCell(1).textContent = distributorName;
+                newRow.insertCell(2).textContent = secondarySale;
+                newRow.insertCell(3).textContent = focusSkuSale;
+
+                newRow.cells[2].contentEditable = "true";
+                newRow.cells[3].contentEditable = "true";
+
+                document.getElementById("saleForm").reset(); // Clear form
+                populateDistributors(); // Reset distributor dropdown
+            }
+        }
+
+        // Function to send the table data to Google Sheets
+        function submitTableDataToSheet() {
+            const scriptURL = 'https://script.google.com/macros/library/d/1GsEzOSLy1LgSY30siDSSOapdtgO1jUNvuHaRAgLlvtP4o-UQYyETqtwt/3'; // Paste your Google Apps Script URL here
+            const table = document.getElementById("saleTable");
+            const rowData = [];
+
+            // Loop through each row in the table (except the header)
+            for (let i = 1; i < table.rows.length; i++) {
+                const row = table.rows[i];
+                const rowObject = {
+                    so: row.cells[0].textContent,
+                    distributor: row.cells[1].textContent,
+                    secondarySale: row.cells[2].textContent,
+                    focusSkuSale: row.cells[3].textContent
+                };
+                rowData.push(rowObject);
+            }
+
+            // Send the data to Google Sheets
+            fetch(scriptURL, {
+                method: 'POST',
+                body: JSON.stringify({ data: rowData }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('responseMessage').textContent = "Table data submitted successfully!";
+            })
+            .catch(error => console.error('Error!', error));
+        }
+    </script>
+</head>
+<body>
+    <!-- Logo -->
+    <img src="/mnt/data/image.png" alt="Shikhar Logo" class="logo" width="150">
+
+    <h1>Today's Secondary Sale</h1>
+    <form id="saleForm" onsubmit="handleSubmit(event)">
+        <label for="so">SO Name:</label>
+        <select id="so" name="so" onchange="populateDistributors()" required>
+            <option value="">Select SO</option>
+            <option value="Amit Kumar">Amit Kumar</option>
+            <option value="Aniket Mishra">Aniket Mishra</option>
+            <!-- Add other SO names here -->
+        </select>
+        <br><br>
+
+        <label for="distributor">Distributor Name:</label>
+        <select id="distributor" name="distributor" required>
+            <option value="">Select Distributor</option>
+        </select>
+        <br><br>
+
+        <label for="secondarySale">Today's Secondary Sale:</label>
+        <input type="number" id="secondarySale" name="secondarySale" required>
+        <br><br>
+
+        <label for="focusSkuSale">Today's Focus SKU Sale:</label>
+        <input type="number" id="focusSkuSale" name="focusSkuSale" required>
+        <br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+
+    <h2>Captured Data</h2>
+    <table id="saleTable">
+        <thead>
+            <tr>
+                <th>SO Name</th>
+                <th>Distributor Name</th>
+                <th>Today's Secondary Sale</th>
+                <th>Today's Focus SKU Sale</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Button to submit all table data -->
+    <br>
+    <button onclick="submitTableDataToSheet()">Submit Table Data to Google Sheets</button>
+
+    <p id="responseMessage"></p>
+</body>
+</html>
